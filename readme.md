@@ -16,7 +16,7 @@ This repository contains assignment and project work for the Fall 2025 Computati
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/your-username/CompMethods.git
+    git clone https://github.com/stephen-jsmith/CompMethods.git
     ```
 2. Navigate to the project directory:
     ```bash
