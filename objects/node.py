@@ -47,6 +47,7 @@ class Node:
     y: Union[float, int, object],
         fixity: Literal['fixed', 'free', 'pinned', 'roller'],
         restrained_dofs: Optional[List[str]] = None,
+    z: Union[float, int, object] = None
     ) -> None:
 
         # Basic type and value validation. Accept numeric types or SymPy symbolic
@@ -55,11 +56,15 @@ class Node:
         is_numeric_y = isinstance(y, (int, float))
         is_symbolic_x = isinstance(x, SympyBasic)
         is_symbolic_y = isinstance(y, SympyBasic)
+        is_numeric_z = isinstance(z, (int, float))
+        is_symbolic_z = isinstance(z, SympyBasic)
 
         if not (is_numeric_x or is_symbolic_x):
             raise TypeError('x must be a number or a sympy expression')
         if not (is_numeric_y or is_symbolic_y):
             raise TypeError('y must be a number or a sympy expression')
+        if z is not None and not (is_numeric_z or is_symbolic_z):
+            raise TypeError('z must be a number, a sympy expression, or None')
 
         allowed_fixities = ('fixed', 'free', 'pinned', 'roller')
         if fixity not in allowed_fixities:

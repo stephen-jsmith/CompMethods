@@ -1,7 +1,8 @@
 from sympy import Matrix, cos, sin, symbols, simplify, sqrt, atan2
+import numpy as np
 
 
-class Member:
+class Member2D:
     """Represents a structural member (element) connecting two nodes in 2D space.
 
     A Member stores material and geometric properties and computes derived
@@ -44,11 +45,14 @@ class Member:
     - The class docstrings and method docstrings should be kept consistent
         so that Sphinx/autodoc can generate usable API documentation.
     """
+
     def __init__(self, element_type, node_start, node_end, E, A, I):
         # Initialize member with innate properties.
         self.element_type = element_type
-        self.node_start = node_start # Node start and end are objects of class node.
-        self.node_end = node_end # Node objects are placeholders for coordinates and fixity.
+        self.node_start = node_start  # Node start and end are objects of class node.
+        self.node_end = (
+            node_end  # Node objects are placeholders for coordinates and fixity.
+        )
         self.E = E
         self.A = A
         self.I = I
@@ -58,11 +62,17 @@ class Member:
         # Use SymPy expressions for length and angle so numeric and symbolic inputs both work
         self.length = simplify(sqrt(dx**2 + dy**2))
         self.angle = simplify(atan2(dy, dx))
-        
+
         # Validate truss members
-        if self.element_type == 'truss':
-            if self.node_start.fixity not in ('pinned', 'free', 'roller') or self.node_end.fixity not in ('pinned', 'free', 'roller'):
-                raise ValueError("Truss members must have pinned/roller supports or be free to rotate at both ends. \n Check node fixities.")
+        if self.element_type == "truss":
+            if self.node_start.fixity not in (
+                "pinned",
+                "free",
+                "roller",
+            ) or self.node_end.fixity not in ("pinned", "free", "roller"):
+                raise ValueError(
+                    "Truss members must have pinned/roller supports or be free to rotate at both ends. \n Check node fixities."
+                )
 
     def local_stiffness_matrix(self):
         """Compute the local stiffness matrix for this member.
@@ -93,27 +103,24 @@ class Member:
         A = self.A
         I = self.I
 
-        if self.element_type == 'truss':
+        if self.element_type == "truss":
             k = simplify((E * A) / L)
-            return Matrix([
-                [ k, 0, -k, 0],
-                [ 0, 0, 0, 0],
-                [-k, 0,  k, 0],
-                [ 0, 0, 0, 0]
-            ])
-        elif self.element_type == 'beam':
-            k = simplify((E * I) / (L ** 3))
-            return Matrix([
-                [E*A/L,    0,       0, -E*A/L,     0,       0],
-                [   0,  12*k,   6*L*k,     0,  -12*k,   6*L*k],
-                [   0, 6*L*k, 4*L*L*k,     0, -6*L*k, 2*L*L*k],
-                [-E*A/L,  0,        0,  E*A/L,     0,       0],
-                [   0, -12*k,  -6*L*k,     0,   12*k,  -6*L*k],
-                [   0, 6*L*k, 2*L*L*k,     0, -6*L*k, 4*L*L*k]
-            ])
+            return Matrix([[k, 0, -k, 0], [0, 0, 0, 0], [-k, 0, k, 0], [0, 0, 0, 0]])
+        elif self.element_type == "beam":
+            k = simplify((E * I) / (L**3))
+            return Matrix(
+                [
+                    [E * A / L, 0, 0, -E * A / L, 0, 0],
+                    [0, 12 * k, 6 * L * k, 0, -12 * k, 6 * L * k],
+                    [0, 6 * L * k, 4 * L * L * k, 0, -6 * L * k, 2 * L * L * k],
+                    [-E * A / L, 0, 0, E * A / L, 0, 0],
+                    [0, -12 * k, -6 * L * k, 0, 12 * k, -6 * L * k],
+                    [0, 6 * L * k, 2 * L * L * k, 0, -6 * L * k, 4 * L * L * k],
+                ]
+            )
         else:
             raise ValueError("Unknown element type")
-    
+
     def transformation_matrix(self):
         """Return the transformation matrix mapping local -> global coordinates.
 
@@ -143,25 +150,22 @@ class Member:
         c = cos(self.angle)
         s = sin(self.angle)
 
-        if self.element_type == 'truss':  # 2D truss element transformation matrix
-            return Matrix([
-                [c,  s, 0, 0],
-                [-s, c, 0, 0],
-                [0, 0, c,  s],
-                [0, 0, -s, c]
-            ])
-        elif self.element_type == 'beam':  # 2D beam element transformation matrix
-            return Matrix([
-                [c,  s, 0, 0, 0, 0],
-                [-s, c, 0, 0, 0, 0],
-                [0, 0, 1, 0, 0, 0],
-                [0, 0, 0, c,  s, 0],
-                [0, 0, 0, -s, c, 0],
-                [0, 0, 0, 0, 0, 1]
-            ])
+        if self.element_type == "truss":  # 2D truss element transformation matrix
+            return Matrix([[c, s, 0, 0], [-s, c, 0, 0], [0, 0, c, s], [0, 0, -s, c]])
+        elif self.element_type == "beam":  # 2D beam element transformation matrix
+            return Matrix(
+                [
+                    [c, s, 0, 0, 0, 0],
+                    [-s, c, 0, 0, 0, 0],
+                    [0, 0, 1, 0, 0, 0],
+                    [0, 0, 0, c, s, 0],
+                    [0, 0, 0, -s, c, 0],
+                    [0, 0, 0, 0, 0, 1],
+                ]
+            )
         else:
             raise ValueError("Unknown element type")  # Exception handling
-        
+
     def global_stiffness_matrix(self):
         """Assemble and return the global stiffness matrix for this member.
 
@@ -185,4 +189,150 @@ class Member:
         """
         k_local = self.local_stiffness_matrix()  # Local stiffness matrix.
         T = self.transformation_matrix()  # Transformation matrix.
+        return simplify(T.T * k_local * T)
+
+
+class Member3D:
+    def __init__(
+        self,
+        element_type,
+        node_start,
+        node_end,
+        E,
+        A,
+        Iyy,
+        Izz,
+        poisson,
+        J,
+        Comment: str = "",
+    ):
+        self.element_type = element_type
+        self.node_start = node_start
+        self.node_end = node_end
+        self.E = E
+        self.A = A
+        self.Iyy = Iyy
+        self.Izz = Izz
+        self.poisson = poisson
+        self.J = J
+        self.Comment = Comment  # Just in case you'd like to add a comment to the member. e.g. "W18x35"
+        # Length and angle are not given, but calculated from node coordinates.
+        dx = self.node_end.x - self.node_start.x
+        dy = self.node_end.y - self.node_start.y
+        dz = self.node_end.z - self.node_start.z
+        # Shear modulus is a calculated value
+        self.G = self.E / (2 * (1 + self.poisson))
+        # Use SymPy expressions for length and angle so numeric and symbolic inputs both work
+        self.length = simplify(sqrt(dx**2 + dy**2 + dz**2))
+        # Angle calculations in 3D would require more complex handling (direction cosines)
+        # Direction cosines and local orthonormal basis for the element axis
+        if self.length == 0:
+            raise ValueError("Zero-length member; cannot compute direction cosines.")
+
+        self.Lambda = None  # Placeholder for future use
+
+    def local_stiffness_matrix(self):
+        """Compute the 12x12 local stiffness matrix for a 3D beam element.
+
+        The local coordinate system is assumed with the element axis along
+        local x. DOF ordering per node is::
+
+            [u, v, w, rx, ry, rz]
+
+        and the full element DOF ordering is::
+
+            [u1, v1, w1, rx1, ry1, rz1, u2, v2, w2, rx2, ry2, rz2]
+
+        Returns
+        -------
+        sympy.Matrix
+            12x12 local stiffness matrix (symbolic-friendly using SymPy expressions)
+        """
+        L = self.length
+        E = self.E
+        A = self.A
+        Iyy = self.Iyy
+        Izz = self.Izz
+        G = self.G
+        J = self.J
+
+        # Create zero 12x12 matrix
+        K = Matrix([[0] * 12 for _ in range(12)])
+
+        # Axial stiffness (u DOFs: indices 0 and 6)
+        k_axial = simplify(E * A / L)
+        K[0, 0] = k_axial
+        K[0, 6] = -k_axial
+        K[6, 0] = -k_axial
+        K[6, 6] = k_axial
+
+        # Torsional stiffness (rx DOFs: indices 3 and 9)
+        k_torsion = simplify(G * J / L)
+        K[3, 3] = k_torsion
+        K[3, 9] = -k_torsion
+        K[9, 3] = -k_torsion
+        K[9, 9] = k_torsion
+
+        # Bending about local z (produces displacement in local y -> DOFs v and rz)
+        k_bz = simplify(E * Izz / (L**3))
+        # Local mapping for [v1, rz1, v2, rz2] -> indices [1,5,7,11]
+        inds_bz = [1, 5, 7, 11]
+        vals_bz = [
+            [12, 6 * L, -12, 6 * L],
+            [6 * L, 4 * L * L, -6 * L, 2 * L * L],
+            [-12, -6 * L, 12, -6 * L],
+            [6 * L, 2 * L * L, -6 * L, 4 * L * L],
+        ]
+        for i in range(4):
+            for j in range(4):
+                K[inds_bz[i], inds_bz[j]] = simplify(vals_bz[i][j] * k_bz)
+
+        # Bending about local y (produces displacement in local z -> DOFs w and ry)
+        k_by = simplify(E * Iyy / (L**3))
+        # Local mapping for [w1, ry1, w2, ry2] -> indices [2,4,8,10]
+        inds_by = [2, 4, 8, 10]
+        vals_by = [
+            [12, -6 * L, -12, -6 * L],
+            [-6 * L, 4 * L * L, 6 * L, 2 * L * L],
+            [-12, 6 * L, 12, 6 * L],
+            [-6 * L, 2 * L * L, 6 * L, 4 * L * L],
+        ]
+        # Note: signs arranged so consistent sign conventions for rotations are used
+        for i in range(4):
+            for j in range(4):
+                K[inds_by[i], inds_by[j]] = simplify(vals_by[i][j] * k_by)
+
+        return simplify(K)
+
+    def transformation_matrix(self):
+        """Return the 12x12 transformation matrix mapping local -> global for 3D element.
+
+        The transformation matrix ``T`` is constructed from the direction
+        cosines of the element axis. This is calculated earlier 
+
+            [ Λ   0  0  0 ]
+            [ 0   Λ  0  0 ]
+            [ 0   0  Λ  0 ]
+            [ 0   0  0  Λ ]
+
+        and the full 12x12 element transformation is block-diagonal with the
+        two 6x6 node transforms.
+        """
+        Lambda = self.Gamma
+        Zed = np.zeros((3, 3))
+        G_1 = np.hstack((Lambda, Zed, Zed, Zed))
+        G_2 = np.hstack((Zed, Lambda, Zed, Zed))
+        G_3 = np.hstack((Zed, Zed, Lambda, Zed))
+        G_4 = np.hstack((Zed, Zed, Zed, Lambda))
+        Gamma = np.vstack((G_1, G_2, G_3, G_4))
+
+        return simplify(Gamma)
+
+    def global_stiffness_matrix(self):
+        """Assemble and return the global 12x12 stiffness matrix for this member.
+
+        Uses the standard similarity transform K_global = T.T * K_local * T.
+        """
+        k_local = self.local_stiffness_matrix()
+        T = self.transformation_matrix()
         return simplify(T.T * k_local * T)
