@@ -206,6 +206,46 @@ def preassemblyTrusses(members, numeric: bool = False, subs: dict = None):
     return K_sym, None
 
 
+def preassemblyGen(members: list, numeric: bool = False, subs: dict = None):
+    """Assemble global stiffness matrix for mixed truss and beam elements.
+
+    This function assembles both truss and beam element stiffness matrices
+    into a single global stiffness matrix. By default the assembly is symbolic
+    and returns a :class:`sympy.Matrix`. Optionally callers can request
+    numeric evaluation using ``numeric=True`` and provide a substitution
+    dictionary ``subs`` that assigns numeric values to all free symbols.
+
+    Parameters
+    ----------
+    members : list[Member]
+        Iterable of ``Member`` objects. Each member must implement
+        :meth:`Member.global_stiffness_matrix` which returns a
+        ``sympy.Matrix`` (symbolic) or a numeric matrix. Nodes must expose
+        ``node_start`` and ``node_end`` attributes."""
+    # Determine DOF ordering
+    dof_list = []
+    for i in members:
+        dof_list.extend(i.dof_order)
+    dof_list = list(set(dof_list))  # Unique DOF list
+    total_dofs = len(dof_list)
+    stiffness_dict = {}
+    for member in members:
+        k_global = member.global_stiffness_matrix()
+        stiffness_dict[member.name] = k_global
+    print(stiffness_dict)
+    print(f"Total DOFs: {total_dofs}")
+    k = np.zeros((total_dofs, total_dofs))
+    dof_index_map = {dof: idx for idx, dof in enumerate(dof_list)}
+    for member in members:
+        k_global = member.global_stiffness_matrix()
+        dof_order = member.dof_order
+        for i in range(len(dof_order)):
+            for j in range(len(dof_order)):
+                global_i = dof_index_map[dof_order[i]]
+                global_j = dof_index_map[dof_order[j]]
+                k[global_i, global_j] += k_global[i, j]
+    return k, dof_list
+
 # Example usage:
 if __name__ == "__main__":
     E, A, I = symbols("E A I")
@@ -218,11 +258,11 @@ if __name__ == "__main__":
 
     # Define members (edges of square + diagonal through center)
     members = [
-        Member("truss", n1, n2, E=E, A=A, I=I),  # bottom
-        Member("truss", n2, n3, E=E, A=A, I=I),  # right
-        Member("truss", n3, n4, E=E, A=A, I=I),  # top
-        Member("truss", n4, n1, E=E, A=A, I=I),  # left
-        Member("truss", n1, n3, E=E, A=A, I=I),  # diagonal
+        Member2D("truss", n1, n2, E=E, A=A, I=I),  # bottom
+        Member2D("truss", n2, n3, E=E, A=A, I=I),  # right
+        Member2D("truss", n3, n4, E=E, A=A, I=I),  # top
+        Member2D("truss", n4, n1, E=E, A=A, I=I),  # left
+        Member2D("truss", n1, n3, E=E, A=A, I=I),  # diagonal
     ]
 
     # Assign properties if needed (e.g., E, A) here

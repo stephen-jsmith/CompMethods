@@ -49,7 +49,7 @@ class Node:
         restrained_dofs: Optional[List[str]] = None,
     z: Union[float, int, object] = None
     ) -> None:
-
+        self.name = f"Node_{x}_{y}"  # Simple naming convention; can be customized
         # Basic type and value validation. Accept numeric types or SymPy symbolic
         # expressions (Sympy Basic) so the project can support symbolic geometry.
         is_numeric_x = isinstance(x, (int, float))

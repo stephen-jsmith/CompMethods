@@ -10,7 +10,9 @@ print("was a p delta analysis, then axial deformation")
 print("would need to be considered.")
 
 a = Node(0, 2, "pinned", ["x", "y"])  # Node a at (0,2) pinned
-b = Node(5, 2, "roller", ["x"])  # Node b at (5,2) is treated as a roller by the code as x translation is constrained.
+b = Node(
+    5, 2, "roller", ["x"]
+)  # Node b at (5,2) is treated as a roller by the code as x translation is constrained.
 c = Node(10, 2, "pinned", ["x", "y"])  # Node c at (10,2) pinned
 d = Node(5, 0, "free")  # Node d at (5,0) free
 
@@ -41,45 +43,11 @@ for member in members:
     print("\n-------------------\n")
 
 
-K, note = preassemblyTrusses(members)
+k, order = preassemblyGen(members)
+
 print("Global stiffness matrix K:")
-for row in np.array(K):
+for row in np.array(k):
     print(row)
-print("\nNote:")
-print(note)
-print("\nDetermining if K is singular... (Matrix(K).det() == 0)")
-if Matrix(K).det() == 0:
-    print("------------------\n  K is singular.\n------------------\n")
-else:
-    print("------------------\n  K is not singular.\n------------------\n")
 
-print("Partitioning K...")
-# Partition K into submatrices based on DOF types
-# partition_from_members returns 6 values: (Kff, Kfc, Kcf, Kcc, free_idx, constrained_idx)
-kff, kfs, ksf, kss, free_idx, constrained_idx, free_labels, constrained_labels = (
-    partition_from_members(K, members=members)
-)
-print("Kff:")
-for row in np.array(kff):
-    print(row)
-print("\nFree DOF labels:")
-print(free_labels)
-print("Constrained DOF labels:")
-print(constrained_labels)
-print("With free DOF indices:", free_idx)
-
-print("\n Node 2y is Node b y deflection, which we are solving for.")
-print("Force vector:")
-F = Matrix([[100], [0], [0]])
-print(F)
-print("\n Solving for displacements at free DOFs...")
-kff_inv = kff.inv()
-d_free = kff_inv * F
-for line in d_free:
-    print(f'[{line}]')
-
-print("-----------------------------")
-print("Node b y deflection: ", d_free[0])
-print("-----------------------------")
-
-print("\nI'm not so sure about that answer...")
+print("\nDOF Order:")
+print(order)
