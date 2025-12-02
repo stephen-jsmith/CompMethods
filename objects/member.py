@@ -50,10 +50,13 @@ class Member2D:
         # Initialize member with innate properties.
         self.element_type = element_type
         self.node_start = node_start  # Node start and end are objects of class node.
-        self.node_end = node_end  # Node objects are placeholders for coordinates and fixity
+        self.node_end = (
+            node_end  # Node objects are placeholders for coordinates and fixity
+        )
         self.E = E
         self.A = A
         self.I = I
+        self.nodes = [node_start.name, node_end.name]
         # Length and angle are not given, but calculated from node coordinates.
         dx = self.node_end.x - self.node_start.x
         dy = self.node_end.y - self.node_start.y
@@ -61,7 +64,6 @@ class Member2D:
         self.length = simplify(sqrt(dx**2 + dy**2))
         self.angle = simplify(atan2(dy, dx))
         self.name = f"Member_{self.node_start.name}_{self.node_end.name}"
-        self.dof_order = []  # Placeholder for future use
 
         # Validate truss members
         if self.element_type == "truss":
@@ -73,6 +75,24 @@ class Member2D:
                 raise ValueError(
                     "Truss members must have pinned/roller supports or be free to rotate at both ends. \n Check node fixities."
                 )
+
+        if self.element_type == "truss":
+            self.dof_order = [
+                f"{self.node_start.name}_x",
+                f"{self.node_start.name}_y",
+                f"{self.node_end.name}_x",
+                f"{self.node_end.name}_y",
+            ]
+        elif self.element_type == "beam":
+            # use 'rotation' to match DOF naming in dof_index_map and other scripts
+            self.dof_order = [
+                f"{self.node_start.name}_x",
+                f"{self.node_start.name}_y",
+                f"{self.node_start.name}_rotation",
+                f"{self.node_end.name}_x",
+                f"{self.node_end.name}_y",
+                f"{self.node_end.name}_rotation",
+            ]
 
     def local_stiffness_matrix(self):
         """Compute the local stiffness matrix for this member.
@@ -104,13 +124,24 @@ class Member2D:
         I = self.I
 
         if self.element_type == "truss":
-            self.dof_order = [f'{self.node_start.name}_x', f'{self.node_start.name}_y',
-                                f'{self.node_end.name}_x', f'{self.node_end.name}_y']
+            self.dof_order = [
+                f"{self.node_start.name}_x",
+                f"{self.node_start.name}_y",
+                f"{self.node_end.name}_x",
+                f"{self.node_end.name}_y",
+            ]
             k = simplify((E * A) / L)
             return Matrix([[k, 0, -k, 0], [0, 0, 0, 0], [-k, 0, k, 0], [0, 0, 0, 0]])
         elif self.element_type == "beam":
-            self.dof_order = [f'{self.node_start.name}_x', f'{self.node_start.name}_y', f'{self.node_start.name}_theta',
-                                f'{self.node_end.name}_x', f'{self.node_end.name}_y', f'{self.node_end.name}_theta']
+            # keep naming consistent with preassembly.dof_index_map which uses 'rotation'
+            self.dof_order = [
+                f"{self.node_start.name}_x",
+                f"{self.node_start.name}_y",
+                f"{self.node_start.name}_rotation",
+                f"{self.node_end.name}_x",
+                f"{self.node_end.name}_y",
+                f"{self.node_end.name}_rotation",
+            ]
             k = simplify((E * I) / (L**3))
             return Matrix(
                 [
@@ -312,7 +343,7 @@ class Member3D:
         """Return the 12x12 transformation matrix mapping local -> global for 3D element.
 
         The transformation matrix ``T`` is constructed from the direction
-        cosines of the element axis. This is calculated earlier 
+        cosines of the element axis. This is calculated earlier
 
             [ Λ   0  0  0 ]
             [ 0   Λ  0  0 ]
