@@ -36,34 +36,34 @@ def assemblyKff(members: list, dof_map: dict, total_dofs: int) -> Matrix:
             counter += 1
     for member in members:
         k_global = member.global_stiffness_matrix()
-        start, end = member.nodes[0], member.nodes[1]
-        member_dofs = {start: ["x", "y", "rotation"], end: ["x", "y", "rotation"]}
-        counter_i = 0
-        for node in [start, end]:
-            for dof in member_dofs[node]:
-                if node in dof_map["Free"] and dof in dof_map["Free"][node]:
-                    global_i = dof_indices[node][dof]
-                    counter_j = 0
-                    for node_j in [start, end]:
-                        for dof_j in member_dofs[node_j]:
-                            if (
-                                node_j in dof_map["Free"]
-                                and dof_j in dof_map["Free"][node_j]
-                            ):
-                                global_j = dof_indices[node_j][dof_j]
-                                # Debug: log shapes and indices before indexing into member stiffness
-                                Kff_global[global_i, global_j] += k_global[
-                                    counter_i, counter_j
-                                ]
-                            counter_j += 1
-                counter_i += 1
+        # member.dof_order contains labels like 'Node_0.25_0.0_y' or 'Node_0.25_0.0_rotation'
+        # Iterate element DOFs explicitly so we support different element sizes (truss=4, beam=6, etc.)
+        for i, dof_label_i in enumerate(member.dof_order):
+            parts_i = dof_label_i.split("_")
+            dof_name_i = parts_i[-1]
+            node_name_i = "_".join(parts_i[:-1])
+            if (
+                node_name_i in dof_map["Free"]
+                and dof_name_i in dof_map["Free"][node_name_i]
+            ):
+                global_i = dof_indices[node_name_i][dof_name_i]
+                for j, dof_label_j in enumerate(member.dof_order):
+                    parts_j = dof_label_j.split("_")
+                    dof_name_j = parts_j[-1]
+                    node_name_j = "_".join(parts_j[:-1])
+                    if (
+                        node_name_j in dof_map["Free"]
+                        and dof_name_j in dof_map["Free"][node_name_j]
+                    ):
+                        global_j = dof_indices[node_name_j][dof_name_j]
+                        Kff_global[global_i, global_j] += k_global[i, j]
 
     return Kff_global, dof_indices
 
 
-if __name__ == "__main__":
+if __name__ == """__main__""":
     E, A, I = symbols("E A I")
-
+    print("\n--- Frame Assembly Component ---\n")
     # Define nodes (square: (0,0), (1,0), (1,1), (0,1))
     n1 = Node(0, 0, "pinned", ["x", "y"])
     n2 = Node(1, 0, "pinned", ["x", "y"])
@@ -123,6 +123,7 @@ if __name__ == "__main__":
             print(f"{node} DOF {dof}: {disp[index]}")
 
     # Do the same with a truss
+    print("\n--- Truss Assembly Component ---\n")
     E, A, I = symbols("E A I")
 
     # Define nodes (square: (0,0), (1,0), (1,1), (0,1))
