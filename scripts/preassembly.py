@@ -2,6 +2,7 @@ from objects import *
 from sympy import sqrt, symbols, Matrix, zeros, pi
 import numpy as np
 
+
 def dof_index_map(members):
     """
     Construct a mapping of degrees of freedom (DOFs) for each node found in a collection of members.
@@ -58,12 +59,15 @@ def dof_index_map(members):
     for node in node_list:
         if node.restrained_dofs == None:
             dof["Free"][node.name] = ["x", "y", "rotation"]
+        elif node.fixity == "fixed":
+            dof["Fixed"][node.name] = ["x", "y", "rotation"]
         else:
             dof["Fixed"][node.name] = [rdof for rdof in node.restrained_dofs]
             dof["Free"][node.name] = [
                 dof for dof in ["x", "y", "rotation"] if dof not in node.restrained_dofs
             ]
     return dof
+
 
 def preassemblyBeams(members, numeric: bool = False, subs: dict = None):
     """Assemble beam-element global stiffness matrix.
@@ -265,7 +269,7 @@ def preassemblyTrusses(members, numeric: bool = False, subs: dict = None):
         note = f"Numeric assembly performed with substitution: {list(subs_dict.keys())}"
         return K_num, note
 
-    return K_sym, 'No numeric evaluation requested.'
+    return K_sym, "No numeric evaluation requested."
 
 
 def preassemblyGen(members: list, numeric: bool = False, subs: dict = None):
@@ -298,25 +302,26 @@ def preassemblyGen(members: list, numeric: bool = False, subs: dict = None):
     print(f"Total DOFs: {total_dofs}")
     k = np.zeros((total_dofs, total_dofs))
     dof_index_map = {dof: idx for idx, dof in enumerate(dof_list)}
-    '''for member in members:
+    """for member in members:
         k_global = member.global_stiffness_matrix()
         dof_order = member.dof_order
         for i in range(len(dof_order)):
             for j in range(len(dof_order)):
                 global_i = dof_index_map[dof_order[i]]
                 global_j = dof_index_map[dof_order[j]]
-                k[global_i, global_j] += k_global[i, j]'''
+                k[global_i, global_j] += k_global[i, j]"""
     return k, dof_list
+
 
 # Example usage:
 if __name__ == "__main__":
     E, A, I = symbols("E A I")
 
     # Define nodes (square: (0,0), (1,0), (1,1), (0,1))
-    n1 = Node(0, 0, 'pinned', ['x', 'y'])
-    n2 = Node(1, 0, 'pinned', ['x', 'y'])
-    n3 = Node(1, 1, 'free')
-    n4 = Node(0, 1, 'free')
+    n1 = Node(0, 0, "pinned", ["x", "y"])
+    n2 = Node(1, 0, "pinned", ["x", "y"])
+    n3 = Node(1, 1, "free")
+    n4 = Node(0, 1, "free")
 
     # Define members (edges of square + diagonal through center)
     members = [
@@ -326,14 +331,17 @@ if __name__ == "__main__":
         Member2D("beam", n4, n1, E=E, A=A, I=I),  # left
         Member2D("beam", n1, n3, E=E, A=A, I=I),  # diagonal
     ]
-    
 
     # Assign properties if needed (e.g., E, A) here
 
     K = preassemblyGen(members)
     # preassemblyBeams returns a single object (sympy.Matrix or numpy.ndarray);
     # set an informational note for the example to mirror the truss function behavior
-    note = "Numeric evaluation not requested; returned symbolic matrix." if not isinstance(K, np.ndarray) else "Numeric matrix returned."
+    note = (
+        "Numeric evaluation not requested; returned symbolic matrix."
+        if not isinstance(K, np.ndarray)
+        else "Numeric matrix returned."
+    )
     print("---------------------------------")
     print("Global stiffness matrix K:")
     for row in K.tolist():
@@ -341,13 +349,15 @@ if __name__ == "__main__":
     print("\nNote:")
     print(note)
     print("---------------------------------")
-    print('Example numeric evaluation:')
+    print("Example numeric evaluation:")
     numeric_subs = {E: 210e9, A: 0.01, I: 1e-6}
     K_num, dof_list = preassemblyGen(members, numeric=True, subs=numeric_subs)
     print(f"DOF List: {dof_list}")
     print("\nNumeric global stiffness matrix K:")
     for row in K_num.tolist():
         print(row)
-    numeric_note = "Numeric evaluation performed with substitution: " + ", ".join(numeric_subs.keys())
+    numeric_note = "Numeric evaluation performed with substitution: " + ", ".join(
+        numeric_subs.keys()
+    )
     print("\nNote:")
     print(numeric_note)

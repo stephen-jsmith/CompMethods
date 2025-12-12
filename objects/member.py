@@ -48,7 +48,12 @@ class Member2D:
 
     def __init__(self, element_type, node_start, node_end, E, A, I):
         # Initialize member with innate properties.
-        self.element_type = element_type
+        # Normalize element_type to a lowercase string so callers may pass
+        # values like 'Beam' or 'beam' interchangeably.
+        if isinstance(element_type, str):
+            self.element_type = element_type.lower()
+        else:
+            self.element_type = element_type
         self.node_start = node_start  # Node start and end are objects of class node.
         self.node_end = (
             node_end  # Node objects are placeholders for coordinates and fixity
