@@ -213,5 +213,5 @@ for member in members:
         A = member.A  # Cross-sectional area of the fillet member
         stress_axial = F_axial / A if A != 0 else 0
         stress_shear = F_shear / A if A != 0 else 0
-        print(f"  Axial Stress: {stress_axial} N/mm2")
-        print(f"  Shear Stress: {stress_shear} N/mm2")
+        print(f"  Axial Stress: {stress_axial} MPa")
+        print(f"  Shear Stress: {stress_shear} MPa")
