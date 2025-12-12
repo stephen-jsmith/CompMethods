@@ -166,12 +166,7 @@ except Exception:
     )
 
 displacements = linalg.solve(k_numeric, loads_vec)
-print("Nodal Displacements:")
 disp = displacements.tolist()
-for node in dof_indices:
-    for dof in dof_indices[node]:
-        index = dof_indices[node][dof]
-        print(f"{node} DOF {dof}: {disp[index]}")
 nodal_displacement_map = {}
 for node in nodes: # Useful for the next step, finding internal forces/stresses
     nodal_displacement_map[node] = {}
@@ -181,7 +176,7 @@ for node in nodes: # Useful for the next step, finding internal forces/stresses
             nodal_displacement_map[node][dof] = disp[index]
     else:
         nodal_displacement_map[node] = {"x": 0.0, "y": 0.0, "rotation": 0.0}
-print("Nodal Displacement Map:")
+print("\nNodal Displacement Map:")
 for node in nodal_displacement_map:
     print(f"{node.name}: {nodal_displacement_map[node]}")
 # Compute internal forces at the fillet members
